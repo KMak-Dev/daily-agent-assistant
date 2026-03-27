@@ -1,12 +1,22 @@
 package com.example.my_app.news;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/news")
@@ -28,6 +38,57 @@ public class NewsController {
 		item.setContent(request.content());
 		item.setPublishedDate(request.publishedDate());
 		return newsItemRepository.save(item);
+	}
+
+	@DeleteMapping("/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteById(@PathVariable String id) {
+		if (!newsItemRepository.existsById(id)) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
+		newsItemRepository.deleteById(id);
+	}
+
+	@DeleteMapping
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteByMatchingParams(
+			@RequestParam(required = false) String url,
+			@RequestParam(required = false) String title,
+			@RequestParam(required = false) String author,
+			@RequestParam(required = false) String content,
+			@RequestParam(name = "published_date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate publishedDate) {
+		boolean hasCriteria = (url != null && !url.isBlank())
+				|| (title != null && !title.isBlank())
+				|| (author != null && !author.isBlank())
+				|| (content != null && !content.isBlank())
+				|| publishedDate != null;
+		if (!hasCriteria) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide at least one query parameter to match");
+		}
+
+		NewsItem probe = new NewsItem();
+		if (url != null && !url.isBlank()) {
+			probe.setUrl(url);
+		}
+		if (title != null && !title.isBlank()) {
+			probe.setTitle(title);
+		}
+		if (author != null && !author.isBlank()) {
+			probe.setAuthor(author);
+		}
+		if (content != null && !content.isBlank()) {
+			probe.setContent(content);
+		}
+		if (publishedDate != null) {
+			probe.setPublishedDate(publishedDate);
+		}
+
+		ExampleMatcher matcher = ExampleMatcher.matching().withIgnoreNullValues();
+		List<NewsItem> matches = newsItemRepository.findAll(Example.of(probe, matcher));
+		if (matches.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+		}
+		newsItemRepository.deleteAll(matches);
 	}
 
 }
