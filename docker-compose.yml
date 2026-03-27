@@ -1,0 +1,47 @@
+# MongoDB + Spring Boot app. From repo root: cp .env.example .env && docker compose up --build
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-secret}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "-u",
+          "${MONGO_INITDB_ROOT_USERNAME:-root}",
+          "-p",
+          "${MONGO_INITDB_ROOT_PASSWORD:-secret}",
+          "--authenticationDatabase",
+          "admin",
+          "--quiet",
+          "--eval",
+          "db.adminCommand({ ping: 1 }).ok",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  app:
+    build:
+      context: ./my-app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://root:secret@mongodb:27017/daily_agent?authSource=admin}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+volumes:
+  mongo_data:
