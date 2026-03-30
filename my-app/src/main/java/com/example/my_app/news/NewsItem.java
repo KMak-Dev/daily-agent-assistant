@@ -12,7 +12,7 @@ public class NewsItem {
   @Id private String id;
   private String url;
   private String title;
-  private List<String> author;
+  private List<String> authors;
   private String content;
 
   @Field("published_date")
@@ -42,12 +42,12 @@ public class NewsItem {
     this.title = title;
   }
 
-  public List<String> getAuthor() {
-    return author;
+  public List<String> getAuthors() {
+    return authors;
   }
 
-  public void setAuthor(List<String> author) {
-    this.author = author;
+  public void setAuthors(List<String> authors) {
+    this.authors = authors;
   }
 
   public String getContent() {

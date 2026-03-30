@@ -60,7 +60,7 @@ public class NewsController {
     NewsItem item = new NewsItem();
     item.setUrl(request.url());
     item.setTitle(request.title());
-    item.setAuthor(request.author());
+    item.setAuthors(request.authors());
     item.setContent(request.content());
     item.setPublishedDate(request.publishedDate());
     return newsItemRepository.save(item);
@@ -80,12 +80,12 @@ public class NewsController {
   public void deleteByMatchingParams(
       @RequestParam(required = false) String url,
       @RequestParam(required = false) String title,
-      @RequestParam(required = false) List<String> author,
+      @RequestParam(required = false) List<String> authors,
       @RequestParam(required = false) String content,
       @RequestParam(name = "published_date", required = false)
           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate publishedDate) {
-    List<String> authorsForMatch = normalizeAuthorList(author);
+    List<String> authorsForMatch = normalizeAuthorsList(authors);
     boolean hasCriteria =
         (url != null && !url.isBlank())
             || (title != null && !title.isBlank())
@@ -105,7 +105,7 @@ public class NewsController {
       probe.setTitle(title);
     }
     if (!authorsForMatch.isEmpty()) {
-      probe.setAuthor(authorsForMatch);
+      probe.setAuthors(authorsForMatch);
     }
     if (content != null && !content.isBlank()) {
       probe.setContent(content);
@@ -122,11 +122,11 @@ public class NewsController {
     newsItemRepository.deleteAll(matches);
   }
 
-  private static List<String> normalizeAuthorList(List<String> author) {
-    if (author == null || author.isEmpty()) {
+  private static List<String> normalizeAuthorsList(List<String> authors) {
+    if (authors == null || authors.isEmpty()) {
       return List.of();
     }
-    return author.stream()
+    return authors.stream()
         .filter(Objects::nonNull)
         .map(String::trim)
         .filter(s -> !s.isBlank())

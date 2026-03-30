@@ -7,6 +7,6 @@ import java.util.List;
 public record NewsCreateRequest(
     String url,
     String title,
-    List<String> author,
+    List<String> authors,
     String content,
     @JsonProperty("published_date") LocalDate publishedDate) {}
