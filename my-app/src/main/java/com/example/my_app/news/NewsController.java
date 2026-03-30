@@ -41,6 +41,17 @@ public class NewsController {
     return NewsPageResponse.from(page);
   }
 
+  @GetMapping(value = "/range", produces = MediaType.APPLICATION_JSON_VALUE)
+  public List<NewsItem> listByPublishedDateRange(
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+    if (from.isAfter(to)) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Query parameter 'from' must be on or before 'to'");
+    }
+    return newsItemRepository.findByPublishedDateBetweenOrderByPublishedDateDesc(from, to);
+  }
+
   @PostMapping(
       consumes = MediaType.APPLICATION_JSON_VALUE,
       produces = MediaType.APPLICATION_JSON_VALUE)
