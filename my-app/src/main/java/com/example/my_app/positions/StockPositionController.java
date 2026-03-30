@@ -17,7 +17,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -104,6 +106,39 @@ public class StockPositionController {
       throw new ResponseStatusException(
           HttpStatus.CONFLICT, "A position for one of these symbols already exists", e);
     }
+  }
+
+  @PutMapping(
+      value = "/{symbol}",
+      consumes = MediaType.APPLICATION_JSON_VALUE,
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  public StockPosition update(
+      @PathVariable String symbol, @RequestBody StockPositionUpdateRequest request) {
+    if (symbol == null || symbol.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "symbol must not be blank");
+    }
+    if (request == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
+    }
+    if (request.quantity() == null && request.openedAt() == null) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Provide at least one of quantity or opened_at");
+    }
+
+    String sym = symbol.trim().toUpperCase(Locale.ROOT);
+    StockPosition entity =
+        stockPositionRepository
+            .findBySymbol(sym)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+    if (request.quantity() != null) {
+      entity.setQuantity(request.quantity());
+    }
+    if (request.openedAt() != null) {
+      entity.setOpenedAt(request.openedAt());
+    }
+    entity.setLastUpdated(Instant.now());
+    return stockPositionRepository.save(entity);
   }
 
   @DeleteMapping
