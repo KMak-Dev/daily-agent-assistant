@@ -1,6 +1,7 @@
 package com.example.my_app;
 
 import com.example.my_app.news.NewsItemRepository;
+import com.example.my_app.news.worldnews.WorldNewsKeywordRepository;
 import com.example.my_app.positions.StockPositionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +14,7 @@ class DailyAppTests {
 
   @MockitoBean NewsItemRepository newsItemRepository;
   @MockitoBean StockPositionRepository stockPositionRepository;
+  @MockitoBean WorldNewsKeywordRepository worldNewsKeywordRepository;
 
   @Test
   void contextLoads() {}

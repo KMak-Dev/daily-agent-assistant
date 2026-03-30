@@ -35,6 +35,7 @@ class WorldNewsIngestSchedulerIT {
   @MockitoBean WorldNewsClient worldNewsClient;
   @MockitoBean NewsItemRepository newsItemRepository;
   @MockitoBean StockPositionRepository stockPositionRepository;
+  @MockitoBean WorldNewsKeywordRepository worldNewsKeywordRepository;
 
   @BeforeEach
   void stubClient() {

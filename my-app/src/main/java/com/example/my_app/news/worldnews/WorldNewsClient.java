@@ -16,11 +16,15 @@ public class WorldNewsClient {
 
   private final RestClient restClient;
   private final WorldNewsProperties properties;
+  private final WorldNewsSearchTextHolder searchTextHolder;
 
   public WorldNewsClient(
-      @Qualifier("worldNewsRestClient") RestClient restClient, WorldNewsProperties properties) {
+      @Qualifier("worldNewsRestClient") RestClient restClient,
+      WorldNewsProperties properties,
+      WorldNewsSearchTextHolder searchTextHolder) {
     this.restClient = restClient;
     this.properties = properties;
+    this.searchTextHolder = searchTextHolder;
   }
 
   /**
@@ -37,8 +41,9 @@ public class WorldNewsClient {
             .queryParam("language", properties.language())
             .queryParam("number", number)
             .queryParam("offset", offset);
-    if (properties.text() != null && !properties.text().isBlank()) {
-      builder.queryParam("text", properties.text().trim());
+    String text = searchTextHolder.effectiveSearchText();
+    if (!text.isBlank()) {
+      builder.queryParam("text", text);
     }
     if (properties.sourceCountry() != null && !properties.sourceCountry().isBlank()) {
       builder.queryParam("source-country", properties.sourceCountry().trim());
