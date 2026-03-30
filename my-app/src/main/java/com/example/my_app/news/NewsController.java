@@ -2,6 +2,7 @@ package com.example.my_app.news;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
@@ -54,12 +55,13 @@ public class NewsController {
 	public void deleteByMatchingParams(
 			@RequestParam(required = false) String url,
 			@RequestParam(required = false) String title,
-			@RequestParam(required = false) String author,
+			@RequestParam(required = false) List<String> author,
 			@RequestParam(required = false) String content,
 			@RequestParam(name = "published_date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate publishedDate) {
+		List<String> authorsForMatch = normalizeAuthorList(author);
 		boolean hasCriteria = (url != null && !url.isBlank())
 				|| (title != null && !title.isBlank())
-				|| (author != null && !author.isBlank())
+				|| !authorsForMatch.isEmpty()
 				|| (content != null && !content.isBlank())
 				|| publishedDate != null;
 		if (!hasCriteria) {
@@ -73,8 +75,8 @@ public class NewsController {
 		if (title != null && !title.isBlank()) {
 			probe.setTitle(title);
 		}
-		if (author != null && !author.isBlank()) {
-			probe.setAuthor(author);
+		if (!authorsForMatch.isEmpty()) {
+			probe.setAuthor(authorsForMatch);
 		}
 		if (content != null && !content.isBlank()) {
 			probe.setContent(content);
@@ -89,6 +91,17 @@ public class NewsController {
 			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
 		}
 		newsItemRepository.deleteAll(matches);
+	}
+
+	private static List<String> normalizeAuthorList(List<String> author) {
+		if (author == null || author.isEmpty()) {
+			return List.of();
+		}
+		return author.stream()
+				.filter(Objects::nonNull)
+				.map(String::trim)
+				.filter(s -> !s.isBlank())
+				.toList();
 	}
 
 }

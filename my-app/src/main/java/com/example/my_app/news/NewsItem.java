@@ -1,6 +1,7 @@
 package com.example.my_app.news;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -13,7 +14,7 @@ public class NewsItem {
 	private String id;
 	private String url;
 	private String title;
-	private String author;
+	private List<String> author;
 	private String content;
 
 	@Field("published_date")
@@ -43,11 +44,11 @@ public class NewsItem {
 		this.title = title;
 	}
 
-	public String getAuthor() {
+	public List<String> getAuthor() {
 		return author;
 	}
 
-	public void setAuthor(String author) {
+	public void setAuthor(List<String> author) {
 		this.author = author;
 	}
 
