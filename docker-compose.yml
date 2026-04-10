@@ -50,6 +50,7 @@ services:
       WORLD_NEWS_TEXT: ${WORLD_NEWS_TEXT:-}
       WORLD_NEWS_SOURCE_COUNTRY: ${WORLD_NEWS_SOURCE_COUNTRY:-}
       WORLD_NEWS_CATEGORY: ${WORLD_NEWS_CATEGORY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
     depends_on:
       mongodb:
         condition: service_healthy
