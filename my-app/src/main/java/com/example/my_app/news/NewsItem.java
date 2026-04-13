@@ -19,6 +19,9 @@ public class NewsItem {
   private List<String> authors;
   private String content;
 
+  /** One-sentence (or short) summary produced by batch xAI calls; null until generated. */
+  private String summary;
+
   @Field("published_date")
   private LocalDate publishedDate;
 
@@ -60,6 +63,14 @@ public class NewsItem {
 
   public void setContent(String content) {
     this.content = content;
+  }
+
+  public String getSummary() {
+    return summary;
+  }
+
+  public void setSummary(String summary) {
+    this.summary = summary;
   }
 
   public LocalDate getPublishedDate() {

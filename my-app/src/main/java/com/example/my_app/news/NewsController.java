@@ -47,7 +47,8 @@ public class NewsController {
       @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
     if (from.isAfter(to)) {
       throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST, "Query parameter 'from' must be on or before 'to'");
+          HttpStatus.BAD_REQUEST,
+          "Query parameter 'from' must be on or before 'to' ('to' is exclusive: published_date >= from and < to)");
     }
     return newsItemRepository.findByPublishedDateBetweenOrderByPublishedDateDesc(from, to);
   }
