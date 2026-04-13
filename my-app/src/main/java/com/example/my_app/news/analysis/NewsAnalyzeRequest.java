@@ -21,6 +21,7 @@ public record NewsAnalyzeRequest(
     Boolean refreshSummaries,
     /**
      * Synthesis task for the final xAI call (briefing + how it relates to our positions). When
-     * null/blank, uses {@code xai.briefing-prompt} or the application default.
+     * null/blank, uses {@code xai.briefing-prompt} or {@code defaultBriefingPrompt} in {@code
+     * prompts/news-analyze.yaml}.
      */
     String briefingPrompt) {}

@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
@@ -42,11 +43,19 @@ class NewsAnalyzeServiceTest {
   private NewsAnalyzeService service;
 
   @BeforeEach
-  void setUp() {
+  void setUp() throws Exception {
+    NewsAnalyzePrompts prompts =
+        NewsAnalyzePromptsConfiguration.loadPrompts(
+            new ClassPathResource("prompts/news-analyze.yaml"));
     XaiProperties props = new XaiProperties("secret", "grok-test", "https://api.x.ai", 10, 500, "");
     service =
         new NewsAnalyzeService(
-            newsItemRepository, stockPositionRepository, xaiResponsesClient, props, jsonMapper);
+            newsItemRepository,
+            stockPositionRepository,
+            xaiResponsesClient,
+            props,
+            prompts,
+            jsonMapper);
   }
 
   @Test
@@ -70,11 +79,19 @@ class NewsAnalyzeServiceTest {
   }
 
   @Test
-  void analyze_rejectsMissingApiKey() {
+  void analyze_rejectsMissingApiKey() throws Exception {
+    NewsAnalyzePrompts prompts =
+        NewsAnalyzePromptsConfiguration.loadPrompts(
+            new ClassPathResource("prompts/news-analyze.yaml"));
     XaiProperties emptyKey = new XaiProperties("", "m", "https://api.x.ai", 10, 500, "");
     NewsAnalyzeService noKey =
         new NewsAnalyzeService(
-            newsItemRepository, stockPositionRepository, xaiResponsesClient, emptyKey, jsonMapper);
+            newsItemRepository,
+            stockPositionRepository,
+            xaiResponsesClient,
+            emptyKey,
+            prompts,
+            jsonMapper);
     NewsAnalyzeRequest req =
         new NewsAnalyzeRequest(
             LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 2), "UTC", null, null, null);

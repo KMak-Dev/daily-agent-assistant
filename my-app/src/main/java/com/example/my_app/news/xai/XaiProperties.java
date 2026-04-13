@@ -11,7 +11,7 @@ public record XaiProperties(
     int excerptMaxChars,
     /**
      * Default synthesis task text when {@code NewsAnalyzeRequest#briefingPrompt} is unset. Empty
-     * uses the built-in default in {@link com.example.my_app.news.analysis.NewsAnalyzeService}.
+     * uses {@code defaultBriefingPrompt} from classpath {@code prompts/news-analyze.yaml}.
      */
     String briefingPrompt) {
 

@@ -31,25 +31,11 @@ public class NewsAnalyzeService {
 
   private static final int MAX_INCLUSIVE_DAYS = 7;
 
-  private static final String SUMMARIZER_INSTRUCTIONS =
-      "You summarize news for downstream analysis. Follow the user format exactly.";
-
-  private static final String SYNTHESIZER_INSTRUCTIONS =
-      "Follow the task in the user message precisely. Do not "
-          + "fabricate facts, news, or portfolio data. Connect stories to specific stock symbols "
-          + "only when the summaries reasonably support it; otherwise say the link is unclear.";
-
-  private static final String DEFAULT_BRIEFING_PROMPT =
-      "Give a briefing on the summarized news relevant to our stock positions ONLY below. Analyze how the themes and events may "
-          + "affect our current stock positions (symbols and quantities are listed under "
-          + "\"Our current stock positions\"). Tie commentary to our holdings only when the news "
-          + "summaries reasonably support it. Do not invent facts, stories, or positions; if "
-          + "you want to be speculative, you are allowed to but say so clearly.";
-
   private final NewsItemRepository newsItemRepository;
   private final StockPositionRepository stockPositionRepository;
   private final XaiResponsesClient xaiResponsesClient;
   private final XaiProperties xaiProperties;
+  private final NewsAnalyzePrompts prompts;
   private final JsonMapper jsonMapper;
 
   public NewsAnalyzeService(
@@ -57,11 +43,13 @@ public class NewsAnalyzeService {
       StockPositionRepository stockPositionRepository,
       XaiResponsesClient xaiResponsesClient,
       XaiProperties xaiProperties,
+      NewsAnalyzePrompts prompts,
       JsonMapper jsonMapper) {
     this.newsItemRepository = newsItemRepository;
     this.stockPositionRepository = stockPositionRepository;
     this.xaiResponsesClient = xaiResponsesClient;
     this.xaiProperties = xaiProperties;
+    this.prompts = prompts;
     this.jsonMapper = jsonMapper;
   }
 
@@ -128,7 +116,7 @@ public class NewsAnalyzeService {
       String userPrompt = buildBatchSummarizeUserPrompt(batch);
       String raw;
       try {
-        raw = xaiResponsesClient.createResponse(SUMMARIZER_INSTRUCTIONS, userPrompt);
+        raw = xaiResponsesClient.createResponse(prompts.summarizerInstructions(), userPrompt);
       } catch (XaiClientException e) {
         log.warn("News analyze: summarization xAI call failed: {}", e.getMessage(), e);
         throw new ResponseStatusException(
@@ -152,7 +140,8 @@ public class NewsAnalyzeService {
         buildBriefingUserPrompt(start, endExclusive, zone.getId(), task, positions, articles);
     String briefing;
     try {
-      briefing = xaiResponsesClient.createResponse(SYNTHESIZER_INSTRUCTIONS, briefingInput);
+      briefing =
+          xaiResponsesClient.createResponse(prompts.synthesizerInstructions(), briefingInput);
     } catch (XaiClientException e) {
       log.warn("News analyze: briefing xAI call failed: {}", e.getMessage(), e);
       throw new ResponseStatusException(
@@ -206,7 +195,7 @@ public class NewsAnalyzeService {
     if (xaiProperties.briefingPrompt() != null && !xaiProperties.briefingPrompt().isBlank()) {
       return xaiProperties.briefingPrompt().trim();
     }
-    return DEFAULT_BRIEFING_PROMPT;
+    return prompts.defaultBriefingPrompt();
   }
 
   private String buildBriefingUserPrompt(
