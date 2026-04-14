@@ -2,6 +2,8 @@ package com.example.my_app.news.analysis;
 
 import com.example.my_app.news.NewsItem;
 import com.example.my_app.news.NewsItemRepository;
+import com.example.my_app.news.dailybriefing.BriefingArchiveSource;
+import com.example.my_app.news.dailybriefing.NewsBriefingArchiveService;
 import com.example.my_app.news.xai.XaiClientException;
 import com.example.my_app.news.xai.XaiProperties;
 import com.example.my_app.news.xai.XaiResponsesClient;
@@ -37,6 +39,7 @@ public class NewsAnalyzeService {
   private final XaiProperties xaiProperties;
   private final NewsAnalyzePrompts prompts;
   private final JsonMapper jsonMapper;
+  private final NewsBriefingArchiveService briefingArchiveService;
 
   public NewsAnalyzeService(
       NewsItemRepository newsItemRepository,
@@ -44,16 +47,27 @@ public class NewsAnalyzeService {
       XaiResponsesClient xaiResponsesClient,
       XaiProperties xaiProperties,
       NewsAnalyzePrompts prompts,
-      JsonMapper jsonMapper) {
+      JsonMapper jsonMapper,
+      NewsBriefingArchiveService briefingArchiveService) {
     this.newsItemRepository = newsItemRepository;
     this.stockPositionRepository = stockPositionRepository;
     this.xaiResponsesClient = xaiResponsesClient;
     this.xaiProperties = xaiProperties;
     this.prompts = prompts;
     this.jsonMapper = jsonMapper;
+    this.briefingArchiveService = briefingArchiveService;
   }
 
   public NewsAnalyzeResponse analyze(NewsAnalyzeRequest request) {
+    return analyze(request, null);
+  }
+
+  /**
+   * @param archiveSource when non-null, upserts the archived briefing row for this response’s date
+   *     window and zone (cron and API share the same unique key).
+   */
+  public NewsAnalyzeResponse analyze(
+      NewsAnalyzeRequest request, BriefingArchiveSource archiveSource) {
     if (request.startDate() == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate is required");
     }
@@ -150,8 +164,13 @@ public class NewsAnalyzeService {
 
     briefing = BriefingTextUtils.normalizeBriefingLineBreaks(briefing);
 
-    return new NewsAnalyzeResponse(
-        start, endExclusive, zone.getId(), articles.size(), filled, briefing);
+    NewsAnalyzeResponse response =
+        new NewsAnalyzeResponse(
+            start, endExclusive, zone.getId(), articles.size(), filled, briefing);
+    if (archiveSource != null) {
+      briefingArchiveService.upsert(response, archiveSource);
+    }
+    return response;
   }
 
   private String buildBatchSummarizeUserPrompt(List<NewsItem> batch) {

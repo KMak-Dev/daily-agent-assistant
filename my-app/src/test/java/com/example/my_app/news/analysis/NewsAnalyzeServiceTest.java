@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.my_app.news.NewsItem;
 import com.example.my_app.news.NewsItemRepository;
+import com.example.my_app.news.dailybriefing.BriefingArchiveSource;
+import com.example.my_app.news.dailybriefing.NewsBriefingArchiveService;
 import com.example.my_app.news.xai.XaiProperties;
 import com.example.my_app.news.xai.XaiResponsesClient;
 import com.example.my_app.positions.StockPosition;
@@ -35,6 +38,7 @@ class NewsAnalyzeServiceTest {
   @Mock private NewsItemRepository newsItemRepository;
   @Mock private StockPositionRepository stockPositionRepository;
   @Mock private XaiResponsesClient xaiResponsesClient;
+  @Mock private NewsBriefingArchiveService briefingArchiveService;
 
   @Captor private ArgumentCaptor<List<NewsItem>> savedItemsCaptor;
 
@@ -55,7 +59,8 @@ class NewsAnalyzeServiceTest {
             xaiResponsesClient,
             props,
             prompts,
-            jsonMapper);
+            jsonMapper,
+            briefingArchiveService);
   }
 
   @Test
@@ -91,7 +96,8 @@ class NewsAnalyzeServiceTest {
             xaiResponsesClient,
             emptyKey,
             prompts,
-            jsonMapper);
+            jsonMapper,
+            briefingArchiveService);
     NewsAnalyzeRequest req =
         new NewsAnalyzeRequest(
             LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 2), "UTC", null, null, null);
@@ -130,6 +136,32 @@ class NewsAnalyzeServiceTest {
 
     verify(newsItemRepository).saveAll(savedItemsCaptor.capture());
     assertThat(savedItemsCaptor.getValue().getFirst().getSummary()).isEqualTo("One line about A.");
+    verify(briefingArchiveService, times(0)).upsert(any(), any());
+  }
+
+  @Test
+  void analyze_upsertsArchiveWhenSourceProvided() {
+    LocalDate d = LocalDate.of(2026, 4, 1);
+    NewsItem a = new NewsItem();
+    a.setId("id-a");
+    a.setUrl("https://example.com/a");
+    a.setTitle("Title A");
+    a.setContent("body");
+    a.setPublishedDate(d);
+    a.setSummary("already");
+
+    LocalDate endExclusive = d.plusDays(1);
+    when(newsItemRepository.findByPublishedDateBetweenOrderByPublishedDateDesc(d, endExclusive))
+        .thenReturn(List.of(a));
+    when(stockPositionRepository.findAll(any(Sort.class))).thenReturn(List.of());
+    when(xaiResponsesClient.createResponse(anyString(), anyString())).thenReturn("Briefing out.");
+
+    service.analyze(
+        new NewsAnalyzeRequest(d, endExclusive, "UTC", 5, false, null),
+        BriefingArchiveSource.API);
+
+    verify(briefingArchiveService, times(1))
+        .upsert(any(NewsAnalyzeResponse.class), eq(BriefingArchiveSource.API));
   }
 
   @Test

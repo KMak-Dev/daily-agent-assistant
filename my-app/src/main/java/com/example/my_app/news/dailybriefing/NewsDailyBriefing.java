@@ -3,16 +3,20 @@ package com.example.my_app.news.dailybriefing;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "news_daily_briefings")
+@CompoundIndex(
+    name = "uk_briefing_window",
+    def = "{'time_zone': 1, 'start_date': 1, 'end_date': 1}",
+    unique = true)
 public class NewsDailyBriefing {
 
   @Id private String id;
 
-  @Indexed
   @Field("start_date")
   private LocalDate startDate;
 
@@ -25,14 +29,18 @@ public class NewsDailyBriefing {
   @Field("article_count")
   private int articleCount;
 
-  @Field("summaries_filled_this_run")
-  private int summariesFilledThisRun;
-
   private String briefing;
+
+  @Field("last_source")
+  private String lastSource;
 
   @Indexed
   @Field("created_at")
   private Instant createdAt;
+
+  @Indexed
+  @Field("updated_at")
+  private Instant updatedAt;
 
   public String getId() {
     return id;
@@ -74,14 +82,6 @@ public class NewsDailyBriefing {
     this.articleCount = articleCount;
   }
 
-  public int getSummariesFilledThisRun() {
-    return summariesFilledThisRun;
-  }
-
-  public void setSummariesFilledThisRun(int summariesFilledThisRun) {
-    this.summariesFilledThisRun = summariesFilledThisRun;
-  }
-
   public String getBriefing() {
     return briefing;
   }
@@ -90,11 +90,27 @@ public class NewsDailyBriefing {
     this.briefing = briefing;
   }
 
+  public String getLastSource() {
+    return lastSource;
+  }
+
+  public void setLastSource(String lastSource) {
+    this.lastSource = lastSource;
+  }
+
   public Instant getCreatedAt() {
     return createdAt;
   }
 
   public void setCreatedAt(Instant createdAt) {
     this.createdAt = createdAt;
+  }
+
+  public Instant getUpdatedAt() {
+    return updatedAt;
+  }
+
+  public void setUpdatedAt(Instant updatedAt) {
+    this.updatedAt = updatedAt;
   }
 }
