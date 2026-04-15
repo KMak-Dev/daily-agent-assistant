@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Calls POST /api/news/analyze for a half-open window [startDate, endDate) in TIME_ZONE.
-# Default: anchor = previous calendar day (DAY_OFFSET=1), span WINDOW_DAYS calendar days (matches NEWS_DAILY_BRIEFING_*).
+# Default: anchor = today in TIME_ZONE minus DAY_OFFSET calendar days (default 7, matches NEWS_DAILY_BRIEFING_DAY_OFFSET); span WINDOW_DAYS.
 # Override anchor with DAY=2026-04-10. WINDOW_DAYS is clamped to 1..7 (same as the API).
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 TIME_ZONE="${TIME_ZONE:-Asia/Hong_Kong}"
-DAY_OFFSET="${DAY_OFFSET:-1}"
+DAY_OFFSET="${DAY_OFFSET:-7}"
 WINDOW_DAYS="${WINDOW_DAYS:-1}"
 if [[ "${WINDOW_DAYS}" -lt 1 ]]; then WINDOW_DAYS=1; fi
 if [[ "${WINDOW_DAYS}" -gt 7 ]]; then WINDOW_DAYS=7; fi

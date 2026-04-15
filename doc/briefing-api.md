@@ -156,7 +156,7 @@ Returns one archived briefing by MongoDB **`id`**.
 
 - **Unique key:** `(timeZone, startDate, endDate)` (enforced with a compound unique index).
 - **Upsert:** Each successful `POST /api/news/analyze` and each successful scheduled daily job update the same logical row when the triple matches, refreshing `briefing`, `articleCount`, `updatedAt`, and `lastSource`, and preserving `createdAt` on first insert only.
-- **Scheduled job:** When `news.daily-briefing.enabled` is true, the scheduler runs analyze in the configured zone and upserts with `lastSource = CRON`. The window is `[anchorDate, anchorDate + N)` where `anchorDate` is `today` in `news.daily-briefing.zone-id` minus `news.daily-briefing.day-offset`, and `N` is `news.daily-briefing.window-days` (env `NEWS_DAILY_BRIEFING_WINDOW_DAYS`, default `1`, clamped to `1..7`). Use the same `startDate`/`endDate` in `GET .../window` to fetch that row.
+- **Scheduled job:** When `news.daily-briefing.enabled` is true, the scheduler runs analyze in the configured zone and upserts with `lastSource = CRON`. The window is `[anchorDate, anchorDate + N)` where `anchorDate` is `today` in `news.daily-briefing.zone-id` minus `news.daily-briefing.day-offset` (env `NEWS_DAILY_BRIEFING_DAY_OFFSET`, default `7`), and `N` is `news.daily-briefing.window-days` (env `NEWS_DAILY_BRIEFING_WINDOW_DAYS`, default `1`, clamped to `1..7`). Use the same `startDate`/`endDate` in `GET .../window` to fetch that row.
 
 ---
 

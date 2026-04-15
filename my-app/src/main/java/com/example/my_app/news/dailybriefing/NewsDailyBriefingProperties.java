@@ -14,8 +14,9 @@ public record NewsDailyBriefingProperties(
      */
     String zoneId,
     /**
-     * Days to subtract from "today" in {@link #zoneId} when the job runs (default {@code 1} =
-     * previous calendar day, typical for an 08:00 briefing).
+     * Days to subtract from "today" in {@link #zoneId} when the job runs to form the anchor date
+     * (default {@code 7} in {@code application.properties}: anchor is one week before "today" on the
+     * calendar; use {@code 1} for "yesterday" as anchor).
      */
     int dayOffset,
     /**
