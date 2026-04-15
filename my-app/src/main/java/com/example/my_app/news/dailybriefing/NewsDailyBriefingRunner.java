@@ -24,21 +24,35 @@ public class NewsDailyBriefingRunner {
   }
 
   /**
-   * Analyzes a single calendar day ({@code publishedDate >= day && publishedDate <
-   * day.plusDays(1)}) in {@link NewsDailyBriefingProperties#zoneId} and upserts {@code
+   * Analyzes a half-open date window starting at the anchor day ({@code today(zone) - dayOffset})
+   * with length {@link NewsDailyBriefingProperties#windowDays} calendar days, and upserts {@code
    * news_daily_briefings} for that window (same key as API).
    */
   public void runForSchedule() {
     ZoneId zone = ZoneId.of(properties.zoneId().trim());
     LocalDate day = LocalDate.now(zone).minusDays(Math.max(0, properties.dayOffset()));
+    int configured = properties.windowDays();
+    int span =
+        Math.min(
+            NewsAnalyzeService.MAX_ANALYZE_WINDOW_DAYS, Math.max(1, configured));
+    if (span != configured) {
+      log.warn(
+          "Daily briefing job: windowDays={} out of range, using span={} (allowed 1..{})",
+          configured,
+          span,
+          NewsAnalyzeService.MAX_ANALYZE_WINDOW_DAYS);
+    }
+    LocalDate endExclusive = day.plusDays(span);
     log.info(
-        "Daily briefing job: zone={} targetDate={} (dayOffset={})",
+        "Daily briefing job: zone={} startDate={} endExclusive={} spanDays={} (dayOffset={})",
         zone.getId(),
         day,
+        endExclusive,
+        span,
         properties.dayOffset());
 
     NewsAnalyzeRequest request =
-        new NewsAnalyzeRequest(day, day.plusDays(1), zone.getId(), null, false, null);
+        new NewsAnalyzeRequest(day, endExclusive, zone.getId(), null, false, null);
     NewsAnalyzeResponse response =
         newsAnalyzeService.analyze(request, BriefingArchiveSource.CRON);
 

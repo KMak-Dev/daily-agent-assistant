@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# Calls POST /api/news/analyze for a single calendar day: startDate = that day, endDate = next day (exclusive).
-# Default target day: previous calendar day in TIME_ZONE (same idea as NEWS_DAILY_BRIEFING_DAY_OFFSET=1).
-# Override with DAY=2026-04-10. For automatic Mongo writes, enable NEWS_DAILY_BRIEFING_ENABLED on the app.
+# Calls POST /api/news/analyze for a half-open window [startDate, endDate) in TIME_ZONE.
+# Default: anchor = previous calendar day (DAY_OFFSET=1), span WINDOW_DAYS calendar days (matches NEWS_DAILY_BRIEFING_*).
+# Override anchor with DAY=2026-04-10. WINDOW_DAYS is clamped to 1..7 (same as the API).
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 TIME_ZONE="${TIME_ZONE:-Asia/Hong_Kong}"
 DAY_OFFSET="${DAY_OFFSET:-1}"
+WINDOW_DAYS="${WINDOW_DAYS:-1}"
+if [[ "${WINDOW_DAYS}" -lt 1 ]]; then WINDOW_DAYS=1; fi
+if [[ "${WINDOW_DAYS}" -gt 7 ]]; then WINDOW_DAYS=7; fi
 BRIEFING_PROMPT="${BRIEFING_PROMPT:-Give a briefing on the summarized news relevant to our stock positions ONLY below. Analyze how the themes and events may affect our current stock positions (symbols and quantities are listed under \"Our current stock positions\"). Tie commentary to our holdings only when the news summaries reasonably support it. Do not invent facts, stories, or positions; if you want to be speculative, you are allowed to but say so clearly.}"
 
 if [[ -n "${DAY:-}" ]]; then
@@ -19,12 +22,12 @@ else
   fi
 fi
 
-if target_end="$(date -j -v+1d -f "%Y-%m-%d" "$target" +%Y-%m-%d 2>/dev/null)"; then
+if target_end="$(date -j -v+"${WINDOW_DAYS}"d -f "%Y-%m-%d" "$target" +%Y-%m-%d 2>/dev/null)"; then
   :
-elif target_end="$(date -d "${target} +1 day" +%Y-%m-%d 2>/dev/null)"; then
+elif target_end="$(date -d "${target} +${WINDOW_DAYS} days" +%Y-%m-%d 2>/dev/null)"; then
   :
 else
-  echo "need BSD or GNU date to compute endDate (day after ${target})" >&2
+  echo "need BSD or GNU date to compute endDate (${target} + ${WINDOW_DAYS} days)" >&2
   exit 1
 fi
 

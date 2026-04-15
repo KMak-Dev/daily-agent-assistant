@@ -17,4 +17,10 @@ public record NewsDailyBriefingProperties(
      * Days to subtract from "today" in {@link #zoneId} when the job runs (default {@code 1} =
      * previous calendar day, typical for an 08:00 briefing).
      */
-    int dayOffset) {}
+    int dayOffset,
+    /**
+     * Half-open analyze window length in calendar days: {@code publishedDate >= startDate} and
+     * {@code publishedDate < startDate + windowDays}. Clamped to {@code [1, 7]} at runtime (same
+     * maximum as {@code POST /api/news/analyze}).
+     */
+    int windowDays) {}

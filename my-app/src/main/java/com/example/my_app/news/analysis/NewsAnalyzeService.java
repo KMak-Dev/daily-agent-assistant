@@ -31,7 +31,8 @@ public class NewsAnalyzeService {
   private static final Logger log = LoggerFactory.getLogger(NewsAnalyzeService.class);
   private static final int LOG_RAW_SUMMARY_MAX_CHARS = 1500;
 
-  private static final int MAX_INCLUSIVE_DAYS = 7;
+  /** Max calendar-day span for {@code [startDate, endDate)} (half-open), enforced for API and jobs. */
+  public static final int MAX_ANALYZE_WINDOW_DAYS = 7;
 
   private final NewsItemRepository newsItemRepository;
   private final StockPositionRepository stockPositionRepository;
@@ -94,11 +95,11 @@ public class NewsAnalyzeService {
     }
 
     long spanDays = endExclusive.toEpochDay() - start.toEpochDay();
-    if (spanDays > MAX_INCLUSIVE_DAYS) {
+    if (spanDays > MAX_ANALYZE_WINDOW_DAYS) {
       throw new ResponseStatusException(
           HttpStatus.BAD_REQUEST,
           "Date range too long: max "
-              + MAX_INCLUSIVE_DAYS
+              + MAX_ANALYZE_WINDOW_DAYS
               + " calendar days (endDate exclusive: publishedDate >= startDate and < endDate)");
     }
 
