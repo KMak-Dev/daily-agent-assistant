@@ -1,8 +1,24 @@
+# Tutorial index
+
+| Document | Purpose |
+|----------|---------|
+| **[Java tutorial for beginners](java-tutorial-for-beginners.md)** | Core Java (syntax, OOP, collections, exceptions, records, lambdas, `java.time`) before diving into frameworks. |
+| **This file (below)** | Maps Spring Boot concepts to the **`my-app/`** sources in this repository. |
+| **[Spring Boot tutorial](spring-boot-tutorial.md)** | Detailed Spring Boot guide after the Java primer (generic examples); this **README** then maps concepts to **`my-app/`**. |
+
+---
+
 # Spring Boot tutorial (concepts and where they appear)
 
 This document explains Spring Boot features **as used in this Java module**. It does not describe product behavior; it maps **concepts → files and annotations** so you can read the code alongside Spring’s reference documentation.
 
 **Stack reference:** Spring Boot **4.x**, Java **21**, Gradle, Spring Web MVC, Spring Data MongoDB, JUnit 5.
+
+**Module paths:** Paths like `src/main/java/...` and `build.gradle` are relative to the **`my-app/`** Gradle project (from the repo root: `my-app/...`).
+
+**Product docs (APIs, env vars, collections):** [doc/backend.md](../doc/backend.md) and [doc/briefing-api.md](../doc/briefing-api.md).
+
+**Run the full stack:** From the repo root, `cp .env.example .env`, set keys as needed, then `docker compose up --build` (MongoDB + app on **8080**; see `docker-compose.yml`). To trigger the same analyze window as the optional cron job from your shell, use [scripts/run-daily-news-briefing.sh](../scripts/run-daily-news-briefing.sh) (Compose does not load `.env` into the script’s process—export variables or `source` `.env` as noted in `.env.example`).
 
 ---
 
@@ -40,6 +56,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 - `DailyApp.java` — `@EnableScheduling`.
 - `src/main/java/com/example/my_app/news/worldnews/WorldNewsIngestScheduler.java` — `@Scheduled(initialDelayString = "...", fixedDelayString = "...")` reads `worldnews.ingest-*` from configuration.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsDailyBriefingScheduler.java` — `@Scheduled(cron = "${news.daily-briefing.cron}", zone = "${news.daily-briefing.zone-id}")` runs the daily analyze + archive path when the feature is enabled (see §16).
 
 ---
 
@@ -60,12 +77,16 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `src/main/java/com/example/my_app/news/worldnews/WorldNewsProperties.java` — `@ConfigurationProperties(prefix = "worldnews")` record; helper `hasApiKey()`.
+- `src/main/java/com/example/my_app/news/xai/XaiProperties.java` — `@ConfigurationProperties(prefix = "xai")` for Grok base URL, model, API key, batch sizing, etc.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsDailyBriefingProperties.java` — `@ConfigurationProperties(prefix = "news.daily-briefing")` for cron, zone id, day offset, and window length.
 
-**Registration:** `@EnableConfigurationProperties(WorldNewsProperties.class)` on a `@Configuration` class so the record is a bean.
+**Registration:** `@EnableConfigurationProperties(...)` on `@Configuration` classes so each record is a bean.
 
 **Where:**
 
-- `src/main/java/com/example/my_app/news/worldnews/WorldNewsConfiguration.java`.
+- `WorldNewsConfiguration.java` — `WorldNewsProperties`.
+- `src/main/java/com/example/my_app/news/xai/XaiConfiguration.java` — `XaiProperties`.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsDailyBriefingConfiguration.java` — `NewsDailyBriefingProperties`.
 
 ---
 
@@ -76,6 +97,9 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `WorldNewsConfiguration.java` — `@Bean` method builds `RestClient` with a base URL for the World News HTTP API.
+- `XaiConfiguration.java` — `@Bean` `@Qualifier("xaiRestClient")` builds `RestClient` for the xAI base URL.
+- `src/main/java/com/example/my_app/news/analysis/NewsAnalyzePromptsConfiguration.java` — `@Bean` loads `classpath:prompts/news-analyze.yaml` into `NewsAnalyzePrompts` (SnakeYAML + `ResourceLoader`).
+- `NewsDailyBriefingConfiguration.java` — enables `NewsDailyBriefingProperties` (no extra beans).
 - `src/main/java/com/example/my_app/config/PaginationConfig.java` — `@Bean` returning `PageableHandlerMethodArgumentResolverCustomizer` to cap maximum page size for `Pageable` query parameters.
 
 ---
@@ -87,6 +111,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `src/main/java/com/example/my_app/news/worldnews/WorldNewsClient.java` — constructor parameter `@Qualifier("worldNewsRestClient") RestClient` matches the bean from `worldNewsRestClient()` in `WorldNewsConfiguration`.
+- `src/main/java/com/example/my_app/news/xai/XaiResponsesClient.java` — `@Qualifier("xaiRestClient") RestClient` for Grok `POST /v1/responses` calls.
 
 ---
 
@@ -96,9 +121,9 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 **Where:**
 
-- **REST:** `src/main/java/com/example/my_app/StatusController.java`, `src/main/java/com/example/my_app/news/NewsController.java`, `src/main/java/com/example/my_app/positions/StockPositionController.java`, `src/main/java/com/example/my_app/news/worldnews/WorldNewsKeywordController.java`.
-- **Service:** `src/main/java/com/example/my_app/news/worldnews/WorldNewsIngestService.java` — `@Service`.
-- **Component:** `WorldNewsClient.java`, `WorldNewsIngestScheduler.java`, `WorldNewsSearchTextRefresher.java`, and related types under `news/worldnews/` using `@Component` where applicable.
+- **REST:** `StatusController.java`, `news/NewsController.java`, `news/analysis/NewsAnalyzeController.java`, `news/dailybriefing/NewsBriefingController.java`, `positions/StockPositionController.java`, `news/worldnews/WorldNewsKeywordController.java` (under `src/main/java/com/example/my_app/`).
+- **Service:** `news/worldnews/WorldNewsIngestService.java`, `news/analysis/NewsAnalyzeService.java` (analyze pipeline + briefing archive upsert), `news/dailybriefing/NewsBriefingArchiveService.java` (under `src/main/java/com/example/my_app/`).
+- **Component:** `news/worldnews/WorldNewsClient.java`, `news/worldnews/WorldNewsIngestScheduler.java`, `news/worldnews/WorldNewsSearchTextRefresher.java`, `news/dailybriefing/NewsDailyBriefingScheduler.java`, `news/dailybriefing/NewsDailyBriefingRunner.java`, `news/xai/XaiResponsesClient.java`, and related types under `news/worldnews/` (paths under `src/main/java/com/example/my_app/`).
 
 ---
 
@@ -106,7 +131,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 **Concept:** Spring resolves dependencies via a single constructor (recommended). Fields are `final`; the class is easier to test.
 
-**Where:** All controllers and services in this module (e.g. `NewsController`, `StockPositionController`, `WorldNewsIngestService`, `WorldNewsKeywordController`).
+**Where:** All controllers and services in this module (e.g. `NewsController`, `NewsAnalyzeController`, `NewsBriefingController`, `StockPositionController`, `WorldNewsKeywordController`, `NewsAnalyzeService`, `WorldNewsIngestService`).
 
 ---
 
@@ -116,7 +141,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 **Where:**
 
-- `@RequestMapping` class-level base path + `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping` on methods — `NewsController`, `StockPositionController`, `WorldNewsKeywordController`, `StatusController`.
+- `@RequestMapping` class-level base path + `@GetMapping`, `@PostMapping`, `@PutMapping`, `@DeleteMapping` on methods — `NewsController`, `NewsAnalyzeController`, `NewsBriefingController`, `StockPositionController`, `WorldNewsKeywordController`, `StatusController`.
 - `@RequestBody` — JSON to Java objects (records or POJOs), e.g. bulk create in `StockPositionController`, `NewsCreateRequest` in `NewsController`, keyword create in `WorldNewsKeywordController`.
 - `@PathVariable` — path segments (e.g. `symbol`, `id`).
 - `@RequestParam` — query parameters; `required = false` for optional filters; `name = "published_date"` for snake_case query names.
@@ -137,8 +162,11 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `NewsController.java` — `list(Pageable pageable)` with `@PageableDefault(size = 20, sort = "publishedDate", direction = Sort.Direction.DESC)`.
+- `NewsBriefingController.java` — paged `list(..., Pageable pageable)` with `@PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC)` over archived briefings.
 - `NewsItemRepository.java` — `MongoRepository` provides `findAll(Pageable)`.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsDailyBriefingRepository.java` — paging queries for briefing archive lists.
 - `src/main/java/com/example/my_app/news/NewsPageResponse.java` — maps `Page<NewsItem>` to a JSON-friendly DTO.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsBriefingPageResponse.java` — same idea for `Page<NewsDailyBriefing>`.
 - `PaginationConfig.java` — `setMaxPageSize(100)` on the pageable resolver.
 
 ---
@@ -151,7 +179,8 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 - `src/main/java/com/example/my_app/news/NewsItem.java` — `@Document(collection = "news_items")`, `@Indexed`, `@Field("published_date")`.
 - `src/main/java/com/example/my_app/positions/StockPosition.java` — position entity and indexes as defined in source.
-- `NewsItemRepository.java`, `StockPositionRepository.java`, `src/main/java/com/example/my_app/news/worldnews/WorldNewsKeywordRepository.java` — extend `MongoRepository<..., String>`; custom method names like `findByPublishedDateBetweenOrderByPublishedDateDesc`, `existsByUrl`, `findBySymbolIn`, etc.
+- `src/main/java/com/example/my_app/news/dailybriefing/NewsDailyBriefing.java` — `@Document(collection = "news_daily_briefings")`, compound unique index on `(time_zone, start_date, end_date)`.
+- `NewsItemRepository.java`, `StockPositionRepository.java`, `WorldNewsKeywordRepository.java`, `NewsDailyBriefingRepository.java` — extend `MongoRepository<..., String>`; custom method names like `findByPublishedDateBetweenOrderByPublishedDateDesc`, `existsByUrl`, `findBySymbolIn`, window/key queries for briefings, etc.
 
 ---
 
@@ -194,6 +223,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `WorldNewsIngestScheduler.java` — `@ConditionalOnProperty(prefix = "worldnews", name = "ingest-enabled", havingValue = "true")`.
+- `NewsDailyBriefingScheduler.java` — `@ConditionalOnProperty(prefix = "news.daily-briefing", name = "enabled", havingValue = "true")` so the cron job is absent when daily briefing is off (default in `application.properties`).
 
 ---
 
@@ -205,6 +235,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 - `WorldNewsConfiguration.java` — bean creation.
 - `WorldNewsClient.java` — `restClient.get().uri(uri).retrieve().body(SearchNewsResponse.class)`; catches `RestClientResponseException` for logging.
+- `XaiConfiguration.java` / `XaiResponsesClient.java` — `RestClient.post().uri(...).body(...).retrieve()` against xAI’s JSON API (see class for headers and response parsing).
 
 **URI building:**
 
@@ -228,7 +259,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 **Where:**
 
-- Request/response records under `news/` and `news/worldnews/` and `positions/` (e.g. `NewsCreateRequest`, `StockPositionItemRequest`, `StockPositionUpdateRequest`, `WorldNewsKeywordCreateRequest`, `SearchNewsResponse`, `WorldNewsKeywordResponse`).
+- Request/response records under `news/`, `news/analysis/`, `news/dailybriefing/`, `news/worldnews/`, and `positions/` (e.g. `NewsCreateRequest`, `NewsAnalyzeRequest`, `NewsAnalyzeResponse`, `StockPositionItemRequest`, `WorldNewsKeywordCreateRequest`, `SearchNewsResponse`, `WorldNewsKeywordResponse`).
 
 ---
 
@@ -241,7 +272,7 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 **Where:**
 
 - `src/test/java/com/example/my_app/DailyAppTests.java` — `@SpringBootTest`, `@ActiveProfiles("test")`.
-- `src/test/resources/application-test.properties` — `spring.autoconfigure.exclude=...` disables Mongo auto-configuration so tests run **without** a database; `worldnews.ingest-enabled=false` avoids scheduled side effects.
+- `src/test/resources/application-test.properties` — `spring.autoconfigure.exclude=...` disables Mongo auto-configuration so tests run **without** a database; `worldnews.ingest-enabled=false` avoids scheduled side effects (daily briefing stays off unless a test enables it).
 
 ### 20.2 Replacing beans with Mockito (`@MockitoBean`)
 
@@ -276,6 +307,8 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 
 - `src/test/java/com/example/my_app/news/worldnews/WorldNewsSearchTextBuilderTest.java` — tests `WorldNewsSearchTextBuilder` without Spring.
 - `src/test/java/com/example/my_app/news/worldnews/WorldNewsIngestServiceTest.java` — service logic with mocked collaborators (see file for style).
+- `src/test/java/com/example/my_app/news/xai/XaiResponsesClientTest.java` — xAI client with mocked `RestClient`.
+- `src/test/java/com/example/my_app/news/analysis/BriefingTextUtilsTest.java` — pure string utilities for briefing output.
 
 ---
 
@@ -295,15 +328,16 @@ All `@Component`, `@Service`, `@RestController`, `@Configuration`, etc. under `c
 |--------|-------------------|
 | Bootstrapping | `DailyApp.java` |
 | Mongo settings | `application.properties` |
-| Typed config | `WorldNewsProperties.java`, `WorldNewsConfiguration.java` |
-| REST APIs | `*Controller.java` under `news/`, `positions/`, `worldnews/` |
-| Pagination | `NewsController.java`, `PaginationConfig.java`, `NewsPageResponse.java` |
-| Mongo entities/repos | `NewsItem.java`, `StockPosition.java`, `*Repository.java` |
+| Typed config | `WorldNewsProperties.java`, `XaiProperties.java`, `NewsDailyBriefingProperties.java`, `*Configuration.java` under `news/worldnews`, `news/xai`, `news/dailybriefing` |
+| REST APIs | `*Controller.java` under `news/` (incl. `analysis/`, `dailybriefing/`), `positions/`, `worldnews/` |
+| Pagination | `NewsController.java`, `NewsBriefingController.java`, `PaginationConfig.java`, `NewsPageResponse.java`, `NewsBriefingPageResponse.java` |
+| Mongo entities/repos | `NewsItem.java`, `StockPosition.java`, `NewsDailyBriefing.java`, `*Repository.java` |
 | Example queries | `NewsController.java`, `StockPositionController.java` |
-| Scheduling | `DailyApp.java`, `WorldNewsIngestScheduler.java` |
-| Conditional feature | `WorldNewsIngestScheduler.java` |
-| HTTP client | `WorldNewsConfiguration.java`, `WorldNewsClient.java` |
-| Service layer | `WorldNewsIngestService.java`, `WorldNewsSearchTextRefresher.java` |
+| Scheduling | `DailyApp.java`, `WorldNewsIngestScheduler.java`, `NewsDailyBriefingScheduler.java` |
+| Conditional feature | `WorldNewsIngestScheduler.java`, `NewsDailyBriefingScheduler.java` |
+| HTTP client | `WorldNewsConfiguration.java`, `WorldNewsClient.java`, `XaiConfiguration.java`, `XaiResponsesClient.java` |
+| Service layer | `WorldNewsIngestService.java`, `WorldNewsSearchTextRefresher.java`, `NewsAnalyzeService.java`, `NewsBriefingArchiveService.java`, `NewsDailyBriefingRunner.java` |
+| Classpath prompts | `resources/prompts/news-analyze.yaml`, `NewsAnalyzePromptsConfiguration.java` |
 | Integration / unit tests | `src/test/java/...`, `application-test.properties` |
 
 For authoritative semantics (every annotation attribute, every property key), use the [Spring Boot reference documentation](https://docs.spring.io/spring-boot/reference/) and [Spring Framework reference](https://docs.spring.io/spring-framework/reference/) for your Boot version.
