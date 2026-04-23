@@ -2,7 +2,7 @@
 
 This guide is the **next step** after [Java tutorial for beginners](java-tutorial-for-beginners.md). It assumes you are comfortable with **packages**, **classes**, **interfaces**, **constructors**, **generics**, **`record`**, **exceptions**, and **collections**. If any of those feel shaky, revisit the Java doc first—Spring Boot is mostly **ordinary Java** plus a container that **wires objects together** for you.
 
-**What you will learn here:** how a Spring Boot application starts, how **dependency injection** works, how to expose **REST APIs**, how **configuration** and **profiles** behave, how **scheduling** and **data access** fit typical services, and how **tests** are structured. Examples are **generic** (not tied to one business domain). When you want to see the same ideas **mapped to this repository’s `my-app/` tree**, read [README.md](README.md) in this folder.
+**What you will learn here:** how a Spring Boot application starts, how **dependency injection** works, how to expose **REST APIs**, how **configuration** and **profiles** behave, how **scheduling** and **data access** fit typical services, and how **tests** are structured. Examples are **generic** (not tied to one business domain). When you want to see the same ideas **mapped to this repository’s `my-app/` tree**, read [backend-concepts.md](backend-concepts.md) in this folder.
 
 **Versions used in examples:** **Java 21**, **Spring Boot 4.x**, **Gradle**. Dependency names follow Boot 4’s starter coordinates (for example `spring-boot-starter-webmvc` for the servlet web stack). If you use Boot 3, some coordinates differ slightly (`spring-boot-starter-web`); the **concepts** are the same.
 
@@ -761,7 +761,7 @@ When beans are missing or duplicated:
 
 1. Finish [Java tutorial for beginners](java-tutorial-for-beginners.md).
 2. Build a toy service from this document (Initializr + one controller + one in-memory or Mongo path).
-3. Open **[README.md](README.md)** in this folder to see **concept → file** mapping for the **`my-app/`** module (World News ingest, REST APIs, Mongo repositories, scheduling, tests).
+3. Open **[backend-concepts.md](backend-concepts.md)** in this folder to see **concept → file** mapping for the **`my-app/`** module (World News ingest, REST APIs, Mongo repositories, scheduling, tests).
 4. Read product behavior in **`doc/backend.md`** and **`doc/briefing-api.md`** when you work on this specific product.
 
 ---

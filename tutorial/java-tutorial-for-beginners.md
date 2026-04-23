@@ -595,7 +595,7 @@ Suggested path:
 
 1. Finish this document and write a few tiny `main` programs (records, lists, exceptions).
 2. Read **[spring-boot-tutorial.md](spring-boot-tutorial.md)** for Spring Boot (written as a follow-on to this document).
-3. Read **[README.md](README.md)** in this folder to see how those concepts map to **`my-app/`** source files.
+3. Read **[backend-concepts.md](backend-concepts.md)** in this folder to see how those concepts map to **`my-app/`** source files.
 
 Product-facing behavior (APIs, environment variables) lives under **`doc/`** at the repository root.
 

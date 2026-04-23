@@ -3,8 +3,10 @@
 | Document | Purpose |
 |----------|---------|
 | **[Java tutorial for beginners](java-tutorial-for-beginners.md)** | Core Java (syntax, OOP, collections, exceptions, records, lambdas, `java.time`) before diving into frameworks. |
+| **[Spring Boot tutorial](spring-boot-tutorial.md)** | Detailed Spring Boot guide after the Java primer (generic examples). |
 | **This file (below)** | Maps Spring Boot concepts to the **`my-app/`** sources in this repository. |
-| **[Spring Boot tutorial](spring-boot-tutorial.md)** | Detailed Spring Boot guide after the Java primer (generic examples); this **README** then maps concepts to **`my-app/`**. |
+| **[React tutorial](react-tutorial.md)** | Core React (JSX, hooks, effects, lists, Vite) for reading modern frontend code. |
+| **[React in this repository](react-in-this-repo.md)** | Maps those React concepts to **`briefing-ui/`** and points to **`doc/frontend.md`**. |
 
 ---
 
