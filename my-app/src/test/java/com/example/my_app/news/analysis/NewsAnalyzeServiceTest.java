@@ -157,8 +157,7 @@ class NewsAnalyzeServiceTest {
     when(xaiResponsesClient.createResponse(anyString(), anyString())).thenReturn("Briefing out.");
 
     service.analyze(
-        new NewsAnalyzeRequest(d, endExclusive, "UTC", 5, false, null),
-        BriefingArchiveSource.API);
+        new NewsAnalyzeRequest(d, endExclusive, "UTC", 5, false, null), BriefingArchiveSource.API);
 
     verify(briefingArchiveService, times(1))
         .upsert(any(NewsAnalyzeResponse.class), eq(BriefingArchiveSource.API));

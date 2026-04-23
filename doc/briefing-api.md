@@ -152,6 +152,17 @@ Returns one archived briefing by MongoDB **`id`**.
 
 ---
 
+### `DELETE /api/news/briefings/{id}`
+
+Removes one archived row by MongoDB **`id`**. Does not delete underlying news articles or summaries.
+
+**Responses**
+
+- `204` — deleted (no body).
+- `404` — unknown id.
+
+---
+
 ## Persistence
 
 - **Unique key:** `(timeZone, startDate, endDate)` (enforced with a compound unique index).

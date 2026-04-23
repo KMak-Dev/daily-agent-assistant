@@ -32,9 +32,7 @@ public class NewsDailyBriefingRunner {
     ZoneId zone = ZoneId.of(properties.zoneId().trim());
     LocalDate day = LocalDate.now(zone).minusDays(Math.max(0, properties.dayOffset()));
     int configured = properties.windowDays();
-    int span =
-        Math.min(
-            NewsAnalyzeService.MAX_ANALYZE_WINDOW_DAYS, Math.max(1, configured));
+    int span = Math.min(NewsAnalyzeService.MAX_ANALYZE_WINDOW_DAYS, Math.max(1, configured));
     if (span != configured) {
       log.warn(
           "Daily briefing job: windowDays={} out of range, using span={} (allowed 1..{})",
@@ -53,8 +51,7 @@ public class NewsDailyBriefingRunner {
 
     NewsAnalyzeRequest request =
         new NewsAnalyzeRequest(day, endExclusive, zone.getId(), null, false, null);
-    NewsAnalyzeResponse response =
-        newsAnalyzeService.analyze(request, BriefingArchiveSource.CRON);
+    NewsAnalyzeResponse response = newsAnalyzeService.analyze(request, BriefingArchiveSource.CRON);
 
     log.info(
         "Daily briefing saved: articles={} summariesFilled={}",

@@ -25,9 +25,7 @@ public class NewsItemRetentionService {
   }
 
   NewsItemRetentionService(
-      NewsItemRepository newsItemRepository,
-      NewsItemRetentionProperties properties,
-      Clock clock) {
+      NewsItemRepository newsItemRepository, NewsItemRetentionProperties properties, Clock clock) {
     this.newsItemRepository = newsItemRepository;
     this.properties = properties;
     this.clock = clock;

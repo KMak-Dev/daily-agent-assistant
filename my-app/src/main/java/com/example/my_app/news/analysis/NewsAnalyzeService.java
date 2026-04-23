@@ -31,7 +31,9 @@ public class NewsAnalyzeService {
   private static final Logger log = LoggerFactory.getLogger(NewsAnalyzeService.class);
   private static final int LOG_RAW_SUMMARY_MAX_CHARS = 1500;
 
-  /** Max calendar-day span for {@code [startDate, endDate)} (half-open), enforced for API and jobs. */
+  /**
+   * Max calendar-day span for {@code [startDate, endDate)} (half-open), enforced for API and jobs.
+   */
   public static final int MAX_ANALYZE_WINDOW_DAYS = 7;
 
   private final NewsItemRepository newsItemRepository;
