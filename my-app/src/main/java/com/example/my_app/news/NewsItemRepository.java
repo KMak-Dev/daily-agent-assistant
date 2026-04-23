@@ -16,4 +16,6 @@ public interface NewsItemRepository extends MongoRepository<NewsItem, String> {
   @Query(value = "{ 'published_date': { $gte: ?0, $lt: ?1 } }", sort = "{ 'published_date': -1 }")
   List<NewsItem> findByPublishedDateBetweenOrderByPublishedDateDesc(
       LocalDate fromInclusive, LocalDate toExclusive);
+
+  long deleteByPublishedDateBefore(LocalDate cutoffExclusive);
 }

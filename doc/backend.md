@@ -24,6 +24,7 @@ For local runs without Compose, point Spring at MongoDB using `spring.mongodb.*`
 | **REST controllers** | CRUD and query endpoints under `/api/...` plus `GET /` for a simple liveness payload. |
 | **MongoDB** | Stores news articles, portfolio positions, World News search keywords, and archived daily briefings. |
 | **World News API** | Scheduled ingest pulls one search page per tick and inserts new rows into `news_items` (dedupe by `url`). |
+| **News retention** | Optional scheduled job deletes `news_items` with `published_date` older than a configured window (`news.item-retention.*`; off by default). |
 | **xAI (Grok)** | On-demand summarization and briefing synthesis (`POST /api/news/analyze`); optional scheduled daily briefing when enabled. |
 
 There is **no authentication** layer in this service; treat it as an internal or development API unless you add a reverse proxy and auth in front.
@@ -34,7 +35,7 @@ There is **no authentication** layer in this service; treat it as an internal or
 
 | Collection | Document type | Notes |
 |------------|---------------|--------|
-| `news_items` | `NewsItem` | Article fields; optional `summary` filled by the analyze pipeline. Unique sparse index on `url`. |
+| `news_items` | `NewsItem` | Article fields; optional `summary` filled by the analyze pipeline. Unique sparse index on `url`. Optional retention job removes rows by `published_date`. |
 | `stock_positions` | `StockPosition` | One row per ticker symbol; unique index on `symbol`. |
 | `world_news_keywords` | `WorldNewsKeyword` | Keyword + `OR` / `NOT` operator + `sort_order`; drives search text when non-empty (see below). |
 | `news_daily_briefings` | `NewsDailyBriefing` | Archived briefings; compound unique index on `(time_zone, start_date, end_date)`. |
