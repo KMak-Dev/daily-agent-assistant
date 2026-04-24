@@ -77,8 +77,34 @@ function splitBriefingOpening(markdown: string): { opening: string; rest: string
   return { opening, rest }
 }
 
+type AppView = 'briefings' | 'holdings' | 'keywords'
+
+/** Nav shows the two sections you are not on (Briefings appears only from Current positions or Keywords). */
+function navDestinations(
+  view: AppView,
+): { view: AppView; label: string }[] {
+  switch (view) {
+    case 'briefings':
+      return [
+        { view: 'holdings', label: 'Current positions' },
+        { view: 'keywords', label: 'News keywords' },
+      ]
+    case 'holdings':
+      return [
+        { view: 'briefings', label: 'Briefings' },
+        { view: 'keywords', label: 'News keywords' },
+      ]
+    case 'keywords':
+      return [
+        { view: 'briefings', label: 'Briefings' },
+        { view: 'holdings', label: 'Current positions' },
+      ]
+  }
+}
+
 function App() {
   const [rows, setRows] = useState<NewsDailyBriefing[]>([])
+  const [appView, setAppView] = useState<AppView>('briefings')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -88,7 +114,9 @@ function App() {
     kind: 'ok' | 'err'
     message: string
   } | null>(null)
+  const [readerScrolled, setReaderScrolled] = useState(false)
   const actionsWrapRef = useRef<HTMLDivElement>(null)
+  const mainReaderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -120,6 +148,20 @@ function App() {
     const t = window.setTimeout(() => setActionBanner(null), 5000)
     return () => window.clearTimeout(t)
   }, [actionBanner])
+
+  useEffect(() => {
+    const el = mainReaderRef.current
+    if (el) {
+      el.scrollTop = 0
+    }
+    setReaderScrolled(false)
+  }, [appView, selectedId])
+
+  function syncReaderScrollShadow() {
+    const el = mainReaderRef.current
+    if (!el) return
+    setReaderScrolled(el.scrollTop > 2)
+  }
 
   const selected = useMemo(
     () => rows.find((r) => r.id === selectedId) ?? null,
@@ -244,6 +286,7 @@ function App() {
                 role="listitem"
                 className={`date-row${b.id === selectedId ? ' active' : ''}`}
                 onClick={() => {
+                  setAppView('briefings')
                   setSelectedId(b.id)
                   setActionsMenuOpen(false)
                 }}
@@ -265,107 +308,149 @@ function App() {
       <main
         className="main"
         aria-label={
-          selected
+          appView === 'briefings' && selected
             ? `Briefing ${formatBriefingWindowDisplay(selected)}, ${selected.timeZone}${selected.lastSource ? `, source ${selected.lastSource}` : ''}`
-            : undefined
+            : appView === 'holdings'
+              ? 'Current positions'
+              : appView === 'keywords'
+                ? 'News keywords'
+                : undefined
         }
       >
-        {!selected ? (
-          <div className="state-block">Select a briefing.</div>
-        ) : (
-          <div className="main-reader">
+        <div
+          className={`main-toolbar-shelf${readerScrolled ? ' main-toolbar-shelf--scrolled' : ''}`}
+        >
+          <div className="main-measure">
             <div className="main-toolbar">
               <div className="main-toolbar-inner">
-                <div
-                  className="main-actions-wrap"
-                  ref={actionsWrapRef}
+                <nav
+                  className="main-toolbar-nav"
+                  aria-label="Sections"
                 >
-                  <button
-                    type="button"
-                    className="main-actions-trigger"
-                    id="briefing-actions-trigger"
-                    aria-label="Briefing actions"
-                    aria-haspopup="menu"
-                    aria-expanded={actionsMenuOpen}
-                    aria-controls="briefing-actions-menu"
-                    aria-busy={overflowBusy}
-                    disabled={overflowBusy}
-                    onClick={() => setActionsMenuOpen((o) => !o)}
-                  >
-                    <span aria-hidden className="main-actions-trigger-dots">
-                      ⋯
-                    </span>
-                  </button>
-                  {actionsMenuOpen ? (
-                    <div
-                      id="briefing-actions-menu"
-                      className="main-action-menu"
-                      role="menu"
-                      aria-labelledby="briefing-actions-trigger"
+                  {navDestinations(appView).map(({ view, label }) => (
+                    <button
+                      key={view}
+                      type="button"
+                      className="main-toolbar-nav-link"
+                      onClick={() => {
+                        setAppView(view)
+                        setActionsMenuOpen(false)
+                      }}
                     >
-                      <button
-                        type="button"
-                        className="main-action-menu-item"
-                        role="menuitem"
-                        disabled={overflowBusy}
-                        onClick={() => void onRerunAnalysis()}
-                      >
-                        Rerun analysis
-                      </button>
+                      {label}
+                    </button>
+                  ))}
+                </nav>
+                {appView === 'briefings' && selected ? (
+                  <div
+                    className="main-actions-wrap"
+                    ref={actionsWrapRef}
+                  >
+                    <button
+                      type="button"
+                      className="main-actions-trigger"
+                      id="briefing-actions-trigger"
+                      aria-label="Briefing actions"
+                      aria-haspopup="menu"
+                      aria-expanded={actionsMenuOpen}
+                      aria-controls="briefing-actions-menu"
+                      aria-busy={overflowBusy}
+                      disabled={overflowBusy}
+                      onClick={() => setActionsMenuOpen((o) => !o)}
+                    >
+                      <span aria-hidden className="main-actions-trigger-dots">
+                        ⋯
+                      </span>
+                    </button>
+                    {actionsMenuOpen ? (
                       <div
-                        className="main-action-menu-sep"
-                        role="separator"
-                        aria-hidden
-                      />
-                      <button
-                        type="button"
-                        className="main-action-menu-item main-action-menu-item--danger"
-                        role="menuitem"
-                        disabled={overflowBusy}
-                        onClick={() => void onDeleteFromArchive()}
+                        id="briefing-actions-menu"
+                        className="main-action-menu"
+                        role="menu"
+                        aria-labelledby="briefing-actions-trigger"
                       >
-                        Delete from archive
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              {actionBanner ? (
-                <div
-                  className={`main-action-banner main-action-banner--${actionBanner.kind}`}
-                  role={actionBanner.kind === 'err' ? 'alert' : 'status'}
-                >
-                  {actionBanner.message}
-                </div>
-              ) : null}
-            </div>
-            <div className="briefing-body">
-              <article>
-                <div className="briefing-headline">
-                  <ReactMarkdown>{briefingParts.opening}</ReactMarkdown>
-                </div>
-                <div className="briefing-article-meta">
-                  <p className="briefing-article-meta-when">
-                    {formatBriefingUpdatedAtInZone(
-                      selected.updatedAt,
-                      selected.timeZone,
-                    )}
-                  </p>
-                  <p className="briefing-article-meta-count">
-                    {selected.articleCount === 1
-                      ? '1 article read'
-                      : `${selected.articleCount} articles read`}
-                  </p>
-                </div>
-                {briefingParts.rest ? (
-                  <div className="briefing-article-body">
-                    <ReactMarkdown>{briefingParts.rest}</ReactMarkdown>
+                        <button
+                          type="button"
+                          className="main-action-menu-item"
+                          role="menuitem"
+                          disabled={overflowBusy}
+                          onClick={() => void onRerunAnalysis()}
+                        >
+                          Rerun analysis
+                        </button>
+                        <div
+                          className="main-action-menu-sep"
+                          role="separator"
+                          aria-hidden
+                        />
+                        <button
+                          type="button"
+                          className="main-action-menu-item main-action-menu-item--danger"
+                          role="menuitem"
+                          disabled={overflowBusy}
+                          onClick={() => void onDeleteFromArchive()}
+                        >
+                          Delete from archive
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
-              </article>
+              </div>
             </div>
+            {actionBanner ? (
+              <div
+                className={`main-action-banner main-action-banner--${actionBanner.kind}`}
+                role={actionBanner.kind === 'err' ? 'alert' : 'status'}
+              >
+                {actionBanner.message}
+              </div>
+            ) : null}
           </div>
-        )}
+        </div>
+        <div
+          ref={mainReaderRef}
+          className="main-reader"
+          onScroll={syncReaderScrollShadow}
+        >
+          <div className="main-measure">
+            {appView === 'holdings' ? (
+              <div className="main-page-placeholder state-block">
+                Current positions
+              </div>
+            ) : appView === 'keywords' ? (
+              <div className="main-page-placeholder state-block">News keywords</div>
+            ) : !selected ? (
+              <div className="state-block">Select a briefing.</div>
+            ) : (
+              <div className="briefing-body">
+                <article>
+                  <div className="briefing-headline">
+                    <ReactMarkdown>{briefingParts.opening}</ReactMarkdown>
+                  </div>
+                  <div className="briefing-article-meta">
+                    <p className="briefing-article-meta-when">
+                      {formatBriefingUpdatedAtInZone(
+                        selected.updatedAt,
+                        selected.timeZone,
+                      )}
+                    </p>
+                    <p className="briefing-article-meta-count">
+                      {selected.articleCount === 1
+                        ? '1 article read'
+                        : `${selected.articleCount} articles read`}
+                    </p>
+                  </div>
+                  {briefingParts.rest ? (
+                    <div className="briefing-article-body">
+                      <ReactMarkdown>{briefingParts.rest}</ReactMarkdown>
+                    </div>
+                  ) : null}
+                </article>
+              </div>
+            )}
+          </div>
+        </div>
       </main>
     </div>
   )
