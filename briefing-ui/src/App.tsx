@@ -5,6 +5,8 @@ import {
   fetchRecentBriefings,
   rerunBriefingAnalysis,
 } from './api/briefings'
+import { CurrentPositionsPanel } from './CurrentPositionsPanel'
+import { NewsKeywordsPanel } from './NewsKeywordsPanel'
 import type { NewsDailyBriefing } from './types'
 import './App.css'
 
@@ -79,28 +81,11 @@ function splitBriefingOpening(markdown: string): { opening: string; rest: string
 
 type AppView = 'briefings' | 'holdings' | 'keywords'
 
-/** Nav shows the two sections you are not on (Briefings appears only from Current positions or Keywords). */
-function navDestinations(
-  view: AppView,
-): { view: AppView; label: string }[] {
-  switch (view) {
-    case 'briefings':
-      return [
-        { view: 'holdings', label: 'Current positions' },
-        { view: 'keywords', label: 'News keywords' },
-      ]
-    case 'holdings':
-      return [
-        { view: 'briefings', label: 'Briefings' },
-        { view: 'keywords', label: 'News keywords' },
-      ]
-    case 'keywords':
-      return [
-        { view: 'briefings', label: 'Briefings' },
-        { view: 'holdings', label: 'Current positions' },
-      ]
-  }
-}
+const TOOLBAR_NAV_ITEMS: { view: AppView; label: string }[] = [
+  { view: 'briefings', label: 'Briefings' },
+  { view: 'holdings', label: 'Current positions' },
+  { view: 'keywords', label: 'News keywords' },
+]
 
 function App() {
   const [rows, setRows] = useState<NewsDailyBriefing[]>([])
@@ -156,6 +141,13 @@ function App() {
     }
     setReaderScrolled(false)
   }, [appView, selectedId])
+
+  useEffect(() => {
+    if (appView !== 'briefings') {
+      setActionsMenuOpen(false)
+      setActionBanner(null)
+    }
+  }, [appView])
 
   function syncReaderScrollShadow() {
     const el = mainReaderRef.current
@@ -284,10 +276,10 @@ function App() {
                 key={b.id}
                 type="button"
                 role="listitem"
-                className={`date-row${b.id === selectedId ? ' active' : ''}`}
+                className={`date-row${appView === 'briefings' && b.id === selectedId ? ' active' : ''}`}
                 onClick={() => {
-                  setAppView('briefings')
                   setSelectedId(b.id)
+                  setAppView('briefings')
                   setActionsMenuOpen(false)
                 }}
               >
@@ -327,75 +319,84 @@ function App() {
                   className="main-toolbar-nav"
                   aria-label="Sections"
                 >
-                  {navDestinations(appView).map(({ view, label }) => (
-                    <button
-                      key={view}
-                      type="button"
-                      className="main-toolbar-nav-link"
-                      onClick={() => {
-                        setAppView(view)
-                        setActionsMenuOpen(false)
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </nav>
-                {appView === 'briefings' && selected ? (
-                  <div
-                    className="main-actions-wrap"
-                    ref={actionsWrapRef}
-                  >
-                    <button
-                      type="button"
-                      className="main-actions-trigger"
-                      id="briefing-actions-trigger"
-                      aria-label="Briefing actions"
-                      aria-haspopup="menu"
-                      aria-expanded={actionsMenuOpen}
-                      aria-controls="briefing-actions-menu"
-                      aria-busy={overflowBusy}
-                      disabled={overflowBusy}
-                      onClick={() => setActionsMenuOpen((o) => !o)}
-                    >
-                      <span aria-hidden className="main-actions-trigger-dots">
-                        ⋯
-                      </span>
-                    </button>
-                    {actionsMenuOpen ? (
-                      <div
-                        id="briefing-actions-menu"
-                        className="main-action-menu"
-                        role="menu"
-                        aria-labelledby="briefing-actions-trigger"
+                  {TOOLBAR_NAV_ITEMS.map(({ view, label }) => {
+                    const isCurrent = appView === view
+                    return (
+                      <button
+                        key={view}
+                        type="button"
+                        className={`main-toolbar-nav-link${isCurrent ? ' main-toolbar-nav-link--active' : ''}`}
+                        aria-current={isCurrent ? 'page' : undefined}
+                        onClick={() => {
+                          setAppView(view)
+                          setActionsMenuOpen(false)
+                        }}
                       >
-                        <button
-                          type="button"
-                          className="main-action-menu-item"
-                          role="menuitem"
-                          disabled={overflowBusy}
-                          onClick={() => void onRerunAnalysis()}
-                        >
-                          Rerun analysis
-                        </button>
+                        {label}
+                      </button>
+                    )
+                  })}
+                </nav>
+                <div
+                  className="main-toolbar-trailing"
+                  aria-hidden={!(appView === 'briefings' && selected)}
+                >
+                  {appView === 'briefings' && selected ? (
+                    <div
+                      className="main-actions-wrap"
+                      ref={actionsWrapRef}
+                    >
+                      <button
+                        type="button"
+                        className="main-actions-trigger"
+                        id="briefing-actions-trigger"
+                        aria-label="Briefing actions"
+                        aria-haspopup="menu"
+                        aria-expanded={actionsMenuOpen}
+                        aria-controls="briefing-actions-menu"
+                        aria-busy={overflowBusy}
+                        disabled={overflowBusy}
+                        onClick={() => setActionsMenuOpen((o) => !o)}
+                      >
+                        <span aria-hidden className="main-actions-trigger-dots">
+                          ⋯
+                        </span>
+                      </button>
+                      {actionsMenuOpen ? (
                         <div
-                          className="main-action-menu-sep"
-                          role="separator"
-                          aria-hidden
-                        />
-                        <button
-                          type="button"
-                          className="main-action-menu-item main-action-menu-item--danger"
-                          role="menuitem"
-                          disabled={overflowBusy}
-                          onClick={() => void onDeleteFromArchive()}
+                          id="briefing-actions-menu"
+                          className="main-action-menu"
+                          role="menu"
+                          aria-labelledby="briefing-actions-trigger"
                         >
-                          Delete from archive
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
+                          <button
+                            type="button"
+                            className="main-action-menu-item"
+                            role="menuitem"
+                            disabled={overflowBusy}
+                            onClick={() => void onRerunAnalysis()}
+                          >
+                            Rerun analysis
+                          </button>
+                          <div
+                            className="main-action-menu-sep"
+                            role="separator"
+                            aria-hidden
+                          />
+                          <button
+                            type="button"
+                            className="main-action-menu-item main-action-menu-item--danger"
+                            role="menuitem"
+                            disabled={overflowBusy}
+                            onClick={() => void onDeleteFromArchive()}
+                          >
+                            Delete from archive
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
             {actionBanner ? (
@@ -415,11 +416,9 @@ function App() {
         >
           <div className="main-measure">
             {appView === 'holdings' ? (
-              <div className="main-page-placeholder state-block">
-                Current positions
-              </div>
+              <CurrentPositionsPanel />
             ) : appView === 'keywords' ? (
-              <div className="main-page-placeholder state-block">News keywords</div>
+              <NewsKeywordsPanel />
             ) : !selected ? (
               <div className="state-block">Select a briefing.</div>
             ) : (

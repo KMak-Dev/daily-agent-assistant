@@ -29,3 +29,22 @@ export interface NewsAnalyzeResponse {
   summariesFilledThisRun: number
   briefing: string
 }
+
+/** {@code GET /api/positions} row — {@code quantity} may be number or string from JSON. */
+export interface StockPosition {
+  id: string
+  symbol: string
+  quantity: number | string
+  openedAt: string
+  lastUpdated: string
+}
+
+export type WorldNewsKeywordOperator = 'OR' | 'NOT'
+
+/** {@code GET /api/world-news/keywords} row — matches {@link WorldNewsKeywordResponse}. */
+export interface WorldNewsKeyword {
+  id: string
+  keyword: string
+  operator: WorldNewsKeywordOperator
+  sort_order: number
+}
