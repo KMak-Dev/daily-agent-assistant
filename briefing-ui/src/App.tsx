@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
+  BRIEFING_SIDEBAR_RECENT_DAYS,
   deleteArchivedBriefing,
   fetchRecentBriefings,
   rerunBriefingAnalysis,
 } from './api/briefings'
 import { CurrentPositionsPanel } from './CurrentPositionsPanel'
+import { DailyBriefingPanel } from './DailyBriefingPanel'
 import { NewsKeywordsPanel } from './NewsKeywordsPanel'
 import type { NewsDailyBriefing } from './types'
 import './App.css'
@@ -79,10 +81,11 @@ function splitBriefingOpening(markdown: string): { opening: string; rest: string
   return { opening, rest }
 }
 
-type AppView = 'briefings' | 'holdings' | 'keywords'
+type AppView = 'briefings' | 'daily-briefing' | 'holdings' | 'keywords'
 
 const TOOLBAR_NAV_ITEMS: { view: AppView; label: string }[] = [
-  { view: 'briefings', label: 'Briefings' },
+  { view: 'briefings', label: 'Briefing on assets' },
+  { view: 'daily-briefing', label: 'Daily briefing' },
   { view: 'holdings', label: 'Current positions' },
   { view: 'keywords', label: 'News keywords' },
 ]
@@ -259,7 +262,9 @@ function App() {
       <aside className="sidebar" aria-labelledby="sidebar-heading">
         <div className="sidebar-header">
           <h1 id="sidebar-heading">Recent briefings</h1>
-          <p>Latest briefings from last 7 days</p>
+          <p>
+            Start dates in the last {BRIEFING_SIDEBAR_RECENT_DAYS} days — scroll the list
+          </p>
         </div>
         <div className="list-scroll" role="list">
           {loading && <div className="state-block">Loading…</div>}
@@ -302,11 +307,13 @@ function App() {
         aria-label={
           appView === 'briefings' && selected
             ? `Briefing ${formatBriefingWindowDisplay(selected)}, ${selected.timeZone}${selected.lastSource ? `, source ${selected.lastSource}` : ''}`
-            : appView === 'holdings'
-              ? 'Current positions'
-              : appView === 'keywords'
-                ? 'News keywords'
-                : undefined
+            : appView === 'daily-briefing'
+              ? 'Daily briefing'
+              : appView === 'holdings'
+                ? 'Current positions'
+                : appView === 'keywords'
+                  ? 'News keywords'
+                  : undefined
         }
       >
         <div
@@ -419,6 +426,8 @@ function App() {
               <CurrentPositionsPanel />
             ) : appView === 'keywords' ? (
               <NewsKeywordsPanel />
+            ) : appView === 'daily-briefing' ? (
+              <DailyBriefingPanel />
             ) : !selected ? (
               <div className="state-block">Select a briefing.</div>
             ) : (
