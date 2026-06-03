@@ -1,4 +1,5 @@
-# MongoDB + Spring Boot app. From repo root: cp .env.example .env && docker compose up --build
+# Full stack: cp .env.example .env && docker compose up --build
+# UI + API proxy: http://localhost:${WEB_PORT:-80}  (optional direct API: localhost:8080)
 services:
   mongodb:
     image: mongo:7
@@ -58,6 +59,23 @@ services:
       NEWS_DAILY_BRIEFING_WINDOW_DAYS: ${NEWS_DAILY_BRIEFING_WINDOW_DAYS:-1}
     depends_on:
       mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  web:
+    build:
+      context: ./briefing-ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      app:
         condition: service_healthy
 
 volumes:

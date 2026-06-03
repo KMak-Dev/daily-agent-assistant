@@ -4,7 +4,7 @@ The frontend is a **single-page application** in **`briefing-ui/`** built with *
 
 **Layout:** a **fixed left sidebar** lists archived briefings whose window **`startDate`** falls in the **last 90 local calendar days** (inclusive), **newest `startDate` first**; the list **scrolls** inside the sidebar. The **right column** is a **main** region with a **top toolbar** and scrollable content below.
 
-**Sections (no URL router):** toolbar tabs switch **`appView`** in **`App.tsx`** — **Briefing on assets** (default: news archive Markdown reader + overflow **⋯** actions), **Daily briefing** (placeholder panel for upcoming features), **Current positions** (stock holdings CRUD), and **News keywords** (World News ingest query terms). There is **no client-side router** (no React Router): one **`App`** tree, **`useState`** for the active section.
+**Sections (no URL router):** toolbar tabs switch **`appView`** in **`App.tsx`** — **Briefing on assets** (default: news archive Markdown reader + overflow **⋯** actions), **Current positions** (stock holdings CRUD), and **News keywords** (World News ingest query terms). There is **no client-side router** (no React Router): one **`App`** tree, **`useState`** for the active section.
 
 There is **no global state library** (no Redux, Zustand, etc.): local React state and **`fetch`** wrappers under **`src/api/`** suffice.
 
@@ -49,7 +49,6 @@ From the **repository root**, use `cd briefing-ui && npm run dev` (etc.).
 | **`src/api/positions.ts`** | Stock positions list, bulk create, update by symbol, delete by symbol. |
 | **`src/api/keywords.ts`** | World News keywords list, create, delete by id. |
 | **`src/CurrentPositionsPanel.tsx`** | **Current positions** view: table + add/edit form (**`GET/POST/PUT/DELETE /api/positions`**). |
-| **`src/DailyBriefingPanel.tsx`** | **Daily briefing** view: placeholder until dedicated flows are wired. |
 | **`src/NewsKeywordsPanel.tsx`** | **News keywords** view: table + add form, search-text preview (**`GET/POST/DELETE /api/world-news/keywords`**). |
 
 There is **no** `src/components/` barrel (feature panels live beside **`App.tsx`**). There is **no** client-side router package.
@@ -67,7 +66,6 @@ There is **no** `src/components/` barrel (feature panels live beside **`App.tsx`
 5. On success, **`rows`** is set to the **concatenated** **`items`** (then client-sorted); **`selectedId`** is set to the **first item’s `id`** (or **`null`** if the list is empty).
 6. The UI re-renders: sidebar always reflects that list; the main column depends on **`appView`**:
    - **`briefings`**: **“Select a briefing.”** if none selected, else Markdown reader for **`selected`**.
-   - **`daily-briefing`**: **`DailyBriefingPanel`** (placeholder; no API yet).
    - **`holdings`** / **`keywords`**: **`CurrentPositionsPanel`** / **`NewsKeywordsPanel`** each load their own data on **mount** (see below).
 
 ### Why the briefing `useEffect` runs once
@@ -76,9 +74,9 @@ The dependency array is **`[]`**, so the **briefings list** load runs on mount o
 
 **After actions:** **Rerun analysis** and **Delete from archive** call the API, then **`fetchRecentBriefings()`** again and reconcile **`selectedId`** with the new list.
 
-### Section panels (daily briefing / positions / keywords)
+### Section panels (positions / keywords)
 
-**`DailyBriefingPanel`**, **`CurrentPositionsPanel`**, and **`NewsKeywordsPanel`** are rendered only when their **`appView`** is active. Switching away **unmounts** the panel, so switching back **remounts** it; holdings and keywords panels run a **fresh list** fetch on mount. **`DailyBriefingPanel`** is a static placeholder today.
+**`CurrentPositionsPanel`** and **`NewsKeywordsPanel`** are rendered only when their **`appView`** is active. Switching away **unmounts** the panel, so switching back **remounts** it; each runs a **fresh list** fetch on mount.
 
 ### Cancellation flag
 
@@ -93,7 +91,7 @@ Clicking a sidebar row calls **`setSelectedId(b.id)`**, **`setAppView('briefings
 
 ### Toolbar and overflow actions
 
-- **`TOOLBAR_NAV_ITEMS`** drives **Briefing on assets** / **Daily briefing** / **Current positions** / **News keywords** links (**`aria-current="page"`** on the active tab).
+- **`TOOLBAR_NAV_ITEMS`** drives **Briefing on assets** / **Current positions** / **News keywords** links (**`aria-current="page"`** on the active tab).
 - When **`appView === 'briefings'`** and **`selected`** is set, the trailing **⋯** menu offers **Rerun analysis** (**`POST /api/news/analyze`** with the row’s **`startDate`**, **`endDate`**, **`timeZone`**) and **Delete from archive** (**`DELETE /api/news/briefings/{id}`**). Success and error messages appear in a thin **banner** under the toolbar.
 - **`appView !== 'briefings'`** clears the menu and ok-banner (errors are per-panel inside **`CurrentPositionsPanel`** / **`NewsKeywordsPanel`**).
 
@@ -217,12 +215,13 @@ VITE_API_PROXY_TARGET=http://127.0.0.1:8080 npm run dev
 
 Useful when the API is on another host/port or behind **Docker** (e.g. published on **`localhost:8080`** while Vite runs on the host).
 
-### Production builds
+### Production builds and Docker
 
-**`npm run build`** emits static files under **`briefing-ui/dist/`**. There is **no proxy** in production unless you serve the app behind a reverse proxy that maps **`/api`** to the backend. Typical patterns:
+**`npm run build`** emits static files under **`briefing-ui/dist/`**.
 
-- Same host: nginx routes **`/api`** → Spring, **`/`** → static **`dist/`**.
-- Or configure Spring to serve **`dist/`** as static resources and keep API on the same origin.
+**Docker Compose (recommended full stack):** the **`web`** service builds **`briefing-ui/Dockerfile`** (Node build → **nginx**). Nginx serves **`dist/`** and proxies **`/api/`** to **`http://app:8080`** with long timeouts for analyze/rerun. Open **`http://localhost`** (default port **80**, override with **`WEB_PORT`** in `.env`). No frontend env vars are required: the browser keeps relative **`/api`** URLs on the same origin.
+
+**Local production smoke test:** `npm run preview` does **not** proxy **`/api`**; use Compose **`web`** or configure your own reverse proxy.
 
 If the SPA is hosted on a **different origin** than the API, you must enable **CORS** on Spring or use a proxy — the repo does not add CORS by default (see **backend.md**).
 
@@ -317,7 +316,7 @@ Scrolling the reader adds **`.main-toolbar-shelf--scrolled`** for a light shadow
 - **Landmarks:** **`aside`** and **`main`** structure the page for screen readers.
 - **Sidebar title:** **`h1#sidebar-heading`** is the single document-level heading in the chrome; **`aside`** references it with **`aria-labelledby`**.
 - **List semantics:** **`role="list"`** / **`role="listitem"`** on buttons (native **`button`** ensures activation with Enter/Space).
-- **Main context:** **`aria-label`** on **`main`** summarizes the active section (briefing window, zone, optional **`lastSource`** when **`briefings`** + selected, or the static labels for daily briefing / holdings / keywords).
+- **Main context:** **`aria-label`** on **`main`** summarizes the active section (briefing window, zone, optional **`lastSource`** when **`briefings`** + selected, or the static labels for holdings / keywords).
 - **Section tabs:** **`nav`** with **`aria-label="Sections"`**; active tab uses **`aria-current="page"`**.
 - **Overflow menu:** trigger **`aria-haspopup`**, **`aria-expanded`**, menu **`role="menu"`** / items **`role="menuitem"`**.
 

@@ -9,11 +9,12 @@ The backend is a **Spring Boot** application (`DailyApp`) on **Java 21**, with *
 From the repository root:
 
 1. Copy environment template: `cp .env.example .env` and fill in API keys as needed.
-2. Start MongoDB and the app: `docker compose up --build`.
+2. Start the full stack: `docker compose up --build`.
+3. Open the UI at **`http://localhost`** (port **`WEB_PORT`** from `.env`, default **80**). Nginx in the **`web`** service serves **`briefing-ui`** and proxies **`/api`** to Spring.
 
-The Compose file builds `my-app/` with the `Dockerfile` (multi-stage Gradle `bootJar`, then JRE 21). The app waits for MongoDB’s healthcheck before starting.
+Compose services: **`mongodb`**, **`app`** (Spring on **8080**, published for direct API access and scripts), **`web`** (nginx). The app waits for MongoDB’s healthcheck; **`web`** waits until Spring responds on **`GET /`**.
 
-For local runs without Compose, point Spring at MongoDB using `spring.mongodb.*` or `SPRING_MONGODB_URI` (see `my-app/src/main/resources/application.properties`).
+For local runs without Compose, point Spring at MongoDB using `spring.mongodb.*` or `SPRING_MONGODB_URI` (see `my-app/src/main/resources/application.properties`). For UI development only, use **`npm run dev`** in **`briefing-ui/`** with the Vite proxy (see **[frontend.md](./frontend.md)**).
 
 ---
 
